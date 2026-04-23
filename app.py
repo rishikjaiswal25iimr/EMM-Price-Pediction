@@ -31,22 +31,31 @@ def fetch_data():
         list(tickers.keys()),
         start=start_date,
         end=end_date,
-        auto_adjust=True  # 🔥 important fix
+        auto_adjust=True
     )
 
-    # 🔥 Handle both single and multi-index safely
+    # 🔥 Handle ALL cases safely
     if isinstance(raw.columns, pd.MultiIndex):
-        df = raw.xs('Close', axis=1, level=1)
+        # Case 1: ('Close', ticker)
+        if 'Close' in raw.columns.levels[0]:
+            df = raw['Close']
+        # Case 2: (ticker, 'Close')
+        elif 'Close' in raw.columns.levels[1]:
+            df = raw.xs('Close', level=1, axis=1)
+        else:
+            # fallback
+            df = raw.copy()
     else:
-        df = raw[['Close']]
+        # Single ticker case
+        df = raw[['Close']].copy()
 
-    # Rename columns
-    df.rename(columns=tickers, inplace=True)
+    # Rename columns safely
+    df.columns = [tickers.get(col, col) for col in df.columns]
 
     # Weekly frequency
     df = df.resample('W').ffill()
 
-    # Proxy EMM price
+    # Create proxy
     df['EMM_Price_Proxy'] = (
         0.4 * df['Energy'] +
         0.2 * df['Freight'] +
@@ -54,12 +63,9 @@ def fetch_data():
         0.2 * df['Market']
     )
 
-    df.fillna(method='ffill', inplace=True)
-    df.fillna(method='bfill', inplace=True)
+    df = df.ffill().bfill()
 
     return df
-
-
 # ==========================================
 # 2. FEATURE ENGINEERING
 # ==========================================
