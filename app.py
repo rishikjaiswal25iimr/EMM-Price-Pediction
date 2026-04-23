@@ -27,13 +27,26 @@ def fetch_data():
         '^GSPC': 'Market'
     }
 
-    df = yf.download(list(tickers.keys()), start=start_date, end=end_date)['Adj Close']
+    raw = yf.download(
+        list(tickers.keys()),
+        start=start_date,
+        end=end_date,
+        auto_adjust=True  # 🔥 important fix
+    )
+
+    # 🔥 Handle both single and multi-index safely
+    if isinstance(raw.columns, pd.MultiIndex):
+        df = raw.xs('Close', axis=1, level=1)
+    else:
+        df = raw[['Close']]
+
+    # Rename columns
     df.rename(columns=tickers, inplace=True)
 
     # Weekly frequency
     df = df.resample('W').ffill()
 
-    # Proxy EMM price (weighted combination)
+    # Proxy EMM price
     df['EMM_Price_Proxy'] = (
         0.4 * df['Energy'] +
         0.2 * df['Freight'] +
