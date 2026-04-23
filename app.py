@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import yfinance as yf
-import pandas_datareader.data as web
 from datetime import datetime
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
@@ -9,39 +8,39 @@ from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
 import streamlit as st
 import warnings
+
 warnings.filterwarnings("ignore")
 
 # ==========================================
-# 1. DATA FETCH
+# 1. DATA FETCH (NO pandas_datareader)
 # ==========================================
 @st.cache_data
 def fetch_data():
     start_date = "2010-01-01"
     end_date = datetime.today().strftime('%Y-%m-%d')
 
-    # FRED data
-    fred_series = ['PCU331110331110', 'FEDFUNDS']
-    df_fred = web.DataReader(fred_series, 'fred', start_date, end_date)
-    df_fred = df_fred.resample('W').ffill()
-    df_fred.rename(columns={
-        'PCU331110331110': 'EMM_Price_Proxy',
-        'FEDFUNDS': 'Interest_Rate'
-    }, inplace=True)
-
-    # Yahoo Finance data
     tickers = {
         'CNY=X': 'USD_CNY',
         'CL=F': 'Energy',
         'BDRY': 'Freight',
-        'SLX': 'Steel'
+        'SLX': 'Steel',
+        '^GSPC': 'Market'
     }
 
-    df_yf = yf.download(list(tickers.keys()), start=start_date, end=end_date)['Adj Close']
-    df_yf.rename(columns=tickers, inplace=True)
-    df_yf = df_yf.resample('W').ffill()
+    df = yf.download(list(tickers.keys()), start=start_date, end=end_date)['Adj Close']
+    df.rename(columns=tickers, inplace=True)
 
-    # Merge
-    df = pd.merge(df_fred, df_yf, left_index=True, right_index=True, how='inner')
+    # Weekly frequency
+    df = df.resample('W').ffill()
+
+    # Proxy EMM price (weighted combination)
+    df['EMM_Price_Proxy'] = (
+        0.4 * df['Energy'] +
+        0.2 * df['Freight'] +
+        0.2 * df['Steel'] +
+        0.2 * df['Market']
+    )
+
     df.fillna(method='ffill', inplace=True)
     df.fillna(method='bfill', inplace=True)
 
@@ -87,11 +86,11 @@ def run_random_forest(df, target):
     importances = pd.Series(rf.feature_importances_, index=X.columns)
     top_features = importances.nlargest(10)
 
-    return rf, top_features
+    return top_features
 
 
 # ==========================================
-# 4. ARIMA
+# 4. ARIMA MODEL
 # ==========================================
 def run_arima(train, test):
     model = ARIMA(train, order=(5, 1, 0))
@@ -107,8 +106,8 @@ def run_arima(train, test):
 # 5. MAIN PIPELINE
 # ==========================================
 def run_pipeline():
-    st.title("EMM Price Forecast (Hybrid Model - RF + ARIMA)")
-    st.write("Proxy-based model using macro + commodity drivers")
+    st.title("EMM Price Forecast (RF + ARIMA Model)")
+    st.write("Forecasting proxy EMM prices using macro & commodity drivers")
 
     df = fetch_data()
     df = engineer_features(df)
@@ -119,14 +118,13 @@ def run_pipeline():
     test = df[df.index >= '2021-01-01']
 
     # Random Forest
-    rf, top_features = run_random_forest(train, target)
+    top_features = run_random_forest(train, target)
 
     st.subheader("Top Feature Importance")
     st.dataframe(top_features.to_frame("Importance"))
 
-    # ARIMA
+    # ARIMA Forecast
     forecast = run_arima(train[target], test[target])
-
     test['Prediction'] = forecast
 
     # Metrics
@@ -134,7 +132,7 @@ def run_pipeline():
     mae = mean_absolute_error(test[target], test['Prediction'])
     mape = mean_absolute_percentage_error(test[target], test['Prediction'])
 
-    st.subheader("Performance")
+    st.subheader("Model Performance")
     col1, col2, col3 = st.columns(3)
     col1.metric("RMSE", f"{rmse:.2f}")
     col2.metric("MAE", f"{mae:.2f}")
