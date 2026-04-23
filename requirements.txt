@@ -1,7 +1,6 @@
 pandas
 numpy
 yfinance
-pandas-datareader
 scikit-learn
 statsmodels
 matplotlib
