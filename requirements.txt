@@ -5,3 +5,7 @@ scikit-learn
 statsmodels
 matplotlib
 streamlit
+pandas
+numpy
+streamlit
+plotly
