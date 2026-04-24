@@ -1,0 +1,16 @@
+{
+  "pipeline_version": "2.0",
+  "train_start": "2016-01-01",
+  "train_end": "2026-03-27",
+  "n_observations": 535,
+  "n_features": 179,
+  "forecast_horizon_wk": 12,
+  "lstm_enabled": true,
+  "markov_enabled": true,
+  "last_actual_price": 108.0,
+  "last_predicted_price": 103.08869137062848,
+  "first_future_price": 102.4342,
+  "last_future_price": 92.0008,
+  "target_variable": "EMM_proxy (MXI ETF proxy \u2014 scale to USD/tonne via calibration)",
+  "scaling_note": "To convert proxy index to USD/tonne: multiply by calibration_factor. Calibration: avg(EMM_spot_USD_tonne) / avg(EMM_proxy) over overlap period. As of 2025, ~1 index point \u2248 $25\u201335 USD/tonne (indicative only)."
+}
