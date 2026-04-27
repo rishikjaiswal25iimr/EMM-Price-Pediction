@@ -11,10 +11,5 @@ streamlit
 plotly
 lightgbm
 tensorflow
-statsmodels
-yfinance
-scikit-learn
-pandas
-numpy
 scipy
 openpyxl
