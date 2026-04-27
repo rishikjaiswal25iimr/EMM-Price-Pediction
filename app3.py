@@ -642,15 +642,12 @@ def render_steel_calculator(
             "Period":            ["Historical"]*len(h.index[::4]) + ["Forecast"]*len(fut.index[::4]),
         })
         st.dataframe(
-            tbl.style.format({
-                "Real Price Rs/Kg": "{:.2f}",
-                "Mn Value Rs/Kg":   "{:.2f}",
-            }).applymap(
-                lambda v: "color: #f0a030" if v == "Forecast" else "",
-                subset=["Period"]
-            ),
-            use_container_width=True, hide_index=True,
-        )
+    tbl.style.format({
+        "Real Price Rs/Kg": "{:.2f}",
+        "Mn Value Rs/Kg":   "{:.2f}",
+    }),
+    use_container_width=True, hide_index=True,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
