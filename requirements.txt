@@ -9,7 +9,4 @@ pandas
 numpy
 streamlit
 plotly
-lightgbm
-tensorflow
 scipy
-openpyxl
